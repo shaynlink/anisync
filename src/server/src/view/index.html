@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anisync site center.</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com"> 
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> 
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <main class="main">
+        <section id="loading" class="loading">
+            <div class="lds-ellipsis">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+            <p id="loading-msg">Processing the data.</p>
+        </section>
+
+        <section id="success" class="hidden">
+            <h1 id="success-msg"></h1>
+            <p>This page will be automatically closed.</p>
+            <div class="loadingBar">
+                <div id="loadStatus" class="loadingStatus" style="width: 0%;"></div>
+            </div>
+        </section>
+
+        <section id="error">
+            <span id="msg-error" class="error"></span>
+        </section>
+
+        <section>
+            <p id="count"></p>
+        </section>
+    </main>
+    <script>
+        function main() {
+            const loading = document.getElementById('loading');
+            const loadingMsg = document.getElementById('loading-msg');
+            const errorMsg = document.getElementById('msg-error');
+            const success = document.getElementById('success');
+            const successMsg = document.getElementById('success-msg');
+
+            const hash = window.location.hash;
+
+            if (!hash || hash == '') {
+                loading.classList.toggle('hidden', true);
+                errorMsg.innerText = 'This url is ONLY used for anilist OAuth2.';
+                return;
+            }
+            const data = hashToJSON(hash);
+            
+            if (
+                !data.access_token ||
+                !data.expires_in ||
+                !data.token_type
+            ) {
+                loading.classList.toggle('hidden', true);
+                errorMsg.innerText = 'Invalid url, retry later or contact developer.';
+                return;
+            }
+
+            if (data.token_type != 'Bearer') {
+                loading.classList.toggle('hidden', true);
+                errorMsg.innerText = 'Wrong authentification, please retry or contact developer.';
+                return;
+            }
+
+            window.sessionStorage.setItem('access_token', data.access_token);
+            window.sessionStorage.setItem('expires_in', data.expires_in);
+            window.sessionStorage.setItem('token_type', data.token_type);
+
+            loadingMsg.innerText = 'Getting some data on anilist server.';
+
+            fetch('https://graphql.anilist.co', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + data.access_token,
+                    'Content-Type': 'application/json',
+
+                },
+                body: JSON.stringify({
+                    query: `
+                        {
+                            Viewer {
+                                id,
+                                name
+                            }
+                        }
+                    `
+                })
+            })
+                .then((res) => {
+                    res.json()
+                        .then((userData) => {
+                        if (userData.errors && !userData.data.Viewer) {
+                            console.error(userData.errors);
+                            loading.classList.toggle('hidden', true);
+                            errorMsg.innerText = 'Anilist server\'error occured , please retry or contact developer.';
+                            return;
+                        }
+                        window.sessionStorage.setItem('user', JSON.stringify(userData.data.Viewer));
+                    })
+                })
+                .catch(() => {
+                    loading.classList.toggle('hidden', true);
+                    errorMsg.innerText = 'An error occured, please retry or contact developer.';
+                    return;
+                })
+        }
+
+        function hashToJSON(hash) {
+            return Object.fromEntries(
+                hash
+                    .slice(1)
+                    .split('&')
+                    .map((v) => v.split('='))
+            )
+        }
+
+        main();
+    </script>
+</body>
+</html>

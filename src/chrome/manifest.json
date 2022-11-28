@@ -1,0 +1,38 @@
+{
+    "manifest_version": 3,
+    "name": "anisync",
+    "description": "Synchronize and update your episode watched on your anylist",
+    "version": "1.0.0",
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "permissions": [
+        "activeTab",
+        "storage"
+    ],
+    "host_permissions": [
+        "https://animationdigitalnetwork.fr/",
+        "https://*.ngrok.io/"
+    ],
+    "content_scripts": [{
+        "matches": [
+            "https://animationdigitalnetwork.fr/",
+            "https://*.ngrok.io/"
+        ],
+        "js": ["page.js"]
+    }],
+    "web_accessible_resources": [
+        {
+            "resources": [ "*/css2*" ],
+            "matches": [ "https://fonts.googleapis.com/*" ]
+        },
+        {
+            "resources": [ "/s/*/*/*.woff2" ],
+            "matches": [ "https://fonts.gstatic.com/*" ]
+        }
+    ],
+    "incognito": "not_allowed"
+}
